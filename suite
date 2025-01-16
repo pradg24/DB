@@ -1,0 +1,36 @@
+CREATE OR REPLACE PROCEDURE insert_suite (
+    p_suite_name IN VARCHAR2,
+    p_suite_description IN CLOB,
+    p_is_parallel IN VARCHAR2 DEFAULT 'N'
+)
+IS
+BEGIN
+    -- Insert into test_suites
+    INSERT INTO test_suites (
+        suite_name,
+        suite_description,
+        is_parallel,
+        created_at,
+        updated_at,
+        updated_by
+    ) VALUES (
+        p_suite_name,
+        p_suite_description,
+        p_is_parallel,
+        SYSDATE,
+        SYSDATE,
+        USER -- Use the current database user
+    );
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Error adding test suite: ' || SQLERRM);
+END;
+/
+DECLARE
+    v_suite_name VARCHAR2(255) := 'Example Suite Name';
+    v_suite_description CLOB := 'This is an example suite description.';
+    v_is_parallel VARCHAR2(1) := 'Y'; -- 'Y' for parallel execution, 'N' for non-parallel execution
+BEGIN
+    insert_suite(v_suite_name, v_suite_description, v_is_parallel);
+END;
+/

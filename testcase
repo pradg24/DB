@@ -29,6 +29,7 @@ IS
     v_suite_id NUMBER;
     v_test_case_id NUMBER;
     v_step_id NUMBER;
+    v_action_id NUMBER;
 BEGIN
     -- Check if suite_name exists in test_suites
     SELECT suite_id INTO v_suite_id
@@ -56,6 +57,12 @@ BEGIN
 
     -- Insert test steps
     FOR i IN 1 .. p_test_steps.COUNT LOOP
+        -- Find the corresponding action_id for each action
+        SELECT action_id INTO v_action_id
+        FROM actions
+        WHERE action = p_test_steps(i).action;
+
+        -- Insert into test_steps
         INSERT INTO test_steps (
             test_case_id,
             action,
@@ -84,7 +91,7 @@ BEGIN
                 argument_name,
                 argument_value
             ) VALUES (
-                NULL, -- Assuming action_id is handled separately
+                v_action_id, -- Use the action_id found earlier
                 v_step_id,
                 p_test_steps(i).action_arguments(j).argument_name,
                 p_test_steps(i).action_arguments(j).argument_value
@@ -93,11 +100,10 @@ BEGIN
     END LOOP;
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
-        RAISE_APPLICATION_ERROR(-20005, 'Suite name not found: ' || p_suite_name);
+        RAISE_APPLICATION_ERROR(-20005, 'Suite name or action not found: ' || p_suite_name);
     WHEN OTHERS THEN
         RAISE_APPLICATION_ERROR(-20004, 'Error adding test case, test steps, or action arguments: ' || SQLERRM);
 END;
-
 /
 DECLARE
     v_suite_name VARCHAR2(255) := 'Suite Name'; -- Replace with the appropriate suite name

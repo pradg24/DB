@@ -7,17 +7,18 @@ CREATE OR REPLACE TYPE action_argument_obj AS OBJECT (
 CREATE OR REPLACE TYPE action_argument_table AS TABLE OF action_argument_obj;
 /
 
--- Create Type for Test Steps
+-- Create Type for Test Steps (updated)
 CREATE OR REPLACE TYPE test_step_obj AS OBJECT (
     action VARCHAR2(100),
     type VARCHAR2(50),
     execution_order NUMBER,
-    is_save_step_data VARCHAR2(1),
-    fetch_data_step_id NUMBER,
-    fetch_data_key VARCHAR2(100),
     locator VARCHAR2(255),
     action_arguments action_argument_table
 );
+
+CREATE OR REPLACE TYPE test_step_table AS TABLE OF test_step_obj;
+/
+
 
 CREATE OR REPLACE TYPE test_step_table AS TABLE OF test_step_obj;
 /
@@ -64,9 +65,6 @@ BEGIN
             action,
             type,
             execution_order,
-            is_save_step_data,
-            fetch_data_step_id,
-            fetch_data_key,
             locator,
             created_at,
             updated_at,
@@ -76,9 +74,6 @@ BEGIN
             p_test_steps(i).action,
             p_test_steps(i).type,
             p_test_steps(i).execution_order,
-            p_test_steps(i).is_save_step_data,
-            p_test_steps(i).fetch_data_step_id,
-            p_test_steps(i).fetch_data_key,
             p_test_steps(i).locator,
             SYSDATE,
             SYSDATE,
@@ -107,6 +102,8 @@ EXCEPTION
         RAISE_APPLICATION_ERROR(-20004, 'Error adding test case, test steps, or action arguments: ' || SQLERRM);
 END;
 /
+
+/
 DECLARE
     v_suite_name VARCHAR2(255) := 'Suite Name'; -- Replace with the appropriate suite name
     v_description CLOB := 'This is a test case description.';
@@ -118,8 +115,6 @@ DECLARE
             'Type1',
             1,
             'N',
-            NULL,
-            NULL,
             'Locator1',
             action_argument_table(
                 action_argument_obj('arg1', 'value1'),
@@ -131,8 +126,6 @@ DECLARE
             'Type2',
             2,
             'N',
-            NULL,
-            NULL,
             'Locator2',
             action_argument_table(
                 action_argument_obj('arg1', 'value1'),

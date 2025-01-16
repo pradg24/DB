@@ -7,8 +7,8 @@ CREATE OR REPLACE TYPE action_argument_obj AS OBJECT (
 CREATE OR REPLACE TYPE action_argument_table AS TABLE OF action_argument_obj;
 /
 
--- Create Type for Test Steps (updated)
-CREATE OR REPLACE TYPE test_step_obj AS OBJECT (
+-- Create Type for Test Steps (renamed to step_obj)
+CREATE OR REPLACE TYPE step_obj AS OBJECT (
     action VARCHAR2(100),
     type VARCHAR2(50),
     execution_order NUMBER,
@@ -16,18 +16,14 @@ CREATE OR REPLACE TYPE test_step_obj AS OBJECT (
     action_arguments action_argument_table
 );
 
-CREATE OR REPLACE TYPE test_step_table AS TABLE OF test_step_obj;
-/
-
-
-CREATE OR REPLACE TYPE test_step_table AS TABLE OF test_step_obj;
+CREATE OR REPLACE TYPE step_table AS TABLE OF step_obj;
 /
 CREATE OR REPLACE PROCEDURE insert_test_case (
     p_suite_name IN VARCHAR2,
     p_description IN CLOB,
     p_is_execute IN VARCHAR2 DEFAULT 'Y',
     p_is_parallel IN VARCHAR2 DEFAULT 'N',
-    p_test_steps IN test_step_table
+    p_test_steps IN step_table
 )
 IS
     v_suite_id NUMBER;
@@ -101,7 +97,6 @@ EXCEPTION
     WHEN OTHERS THEN
         RAISE_APPLICATION_ERROR(-20004, 'Error adding test case, test steps, or action arguments: ' || SQLERRM);
 END;
-/
 
 /
 DECLARE

@@ -1,2 +1,5 @@
 INSERT INTO actions (action, type, created_at, updated_at, updated_by)
 VALUES ('Sample Action', 'Sample Type', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, USER);
+
+ALTER TABLE mx_templates
+ADD (MX_MESSAGE XMLType);

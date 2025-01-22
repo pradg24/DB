@@ -6,3 +6,44 @@ ADD (MX_MESSAGE XMLType);
 
 ALTER TABLE payment_templates
 ADD (mx_message XMLType);
+
+ALTER TABLE mx_templates RENAME TO mx_params;
+
+ALTER TABLE mx_params RENAME COLUMN key TO xpath;
+ALTER TABLE payment_template_validation RENAME TO validation_params;
+ALTER TABLE validation_params RENAME COLUMN key TO field;
+CREATE OR REPLACE TYPE validation_data AS OBJECT (
+    field VARCHAR2(100),
+    value VARCHAR2(255)
+);
+
+CREATE OR REPLACE PROCEDURE add_validation_params (
+    p_group_name IN VARCHAR2,
+    p_params IN validation_data_table
+)
+IS
+BEGIN
+    FOR i IN 1 .. p_params.COUNT LOOP
+        INSERT INTO validation_params (
+            group_name,
+            field,
+            value
+        ) VALUES (
+            p_group_name,
+            p_params(i).field,
+            p_params(i).value
+        );
+    END LOOP;
+    COMMIT;
+END add_validation_params;
+
+DECLARE
+    v_group_name VARCHAR2(100) := 'Group A';
+    v_params validation_data_table := validation_data_table(
+        validation_data('param1', 'value1'),
+        validation_data('param2', 'value2'),
+        validation_data('param3', 'value3')
+    );
+BEGIN
+    add_validation_params(v_group_name, v_params);
+END;

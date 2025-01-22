@@ -3,3 +3,6 @@ VALUES ('Sample Action', 'Sample Type', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, US
 
 ALTER TABLE mx_templates
 ADD (MX_MESSAGE XMLType);
+
+ALTER TABLE payment_templates
+ADD (mx_message XMLType);

@@ -1,0 +1,84 @@
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
+import javax.persistence.Query;
+import java.util.List;
+
+public class ActionArgumentDAO {
+
+    private EntityManagerFactory entityManagerFactory;
+
+    public ActionArgumentDAO() {
+        // Initialize EntityManagerFactory using persistence unit defined in persistence.xml
+        entityManagerFactory = Persistence.createEntityManagerFactory("hibernate_test");
+    }
+
+    // Get action argument by argument_id
+    public ActionArgument getActionArgumentById(String argumentId) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        ActionArgument argument = null;
+        try {
+            argument = entityManager.find(ActionArgument.class, argumentId);  // Find by argument_id
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+        return argument;
+    }
+
+    // Get action arguments by action_id
+    public List<ActionArgument> getActionArgumentsByActionId(String actionId) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        List<ActionArgument> arguments = null;
+        try {
+            Query query = entityManager.createQuery("FROM ActionArgument aa WHERE aa.action_id = :actionId");
+            query.setParameter("actionId", actionId);
+            arguments = query.getResultList();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+        return arguments;
+    }
+
+    // Get action argument by action_name
+    public ActionArgument getActionArgumentByActionName(String actionName) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        ActionArgument argument = null;
+        try {
+            Query query = entityManager.createQuery("FROM ActionArgument aa WHERE aa.action_name = :actionName");
+            query.setParameter("actionName", actionName);
+            argument = (ActionArgument) query.getSingleResult();  // Will return a single result or throw NoResultException
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+        return argument;
+    }
+
+    // Get action arguments by step_id
+    public List<ActionArgument> getActionArgumentsByStepId(String stepId) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        List<ActionArgument> arguments = null;
+        try {
+            Query query = entityManager.createQuery("FROM ActionArgument aa WHERE aa.step_id = :stepId");
+            query.setParameter("stepId", stepId);
+            arguments = query.getResultList();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+        return arguments;
+    }
+
+    // Close EntityManagerFactory when not needed
+    public void close() {
+        if (entityManagerFactory != null && entityManagerFactory.isOpen()) {
+            entityManagerFactory.close();
+        }
+    }
+}

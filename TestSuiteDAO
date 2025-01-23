@@ -1,0 +1,75 @@
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
+import javax.persistence.Query;
+import java.util.List;
+
+public class TestSuiteDAO {
+
+    private EntityManagerFactory entityManagerFactory;
+
+    public TestSuiteDAO() {
+        // Initialize EntityManagerFactory using persistence unit defined in persistence.xml
+        entityManagerFactory = Persistence.createEntityManagerFactory("hibernate_test");
+    }
+
+    // Read by suiteId
+    public TestSuite getTestSuite(String suiteId) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        TestSuite testSuite = null;
+        try {
+            testSuite = entityManager.find(TestSuite.class, suiteId);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+        return testSuite;
+    }
+
+    // Read all test suites
+    public List<TestSuite> getAllTestSuites() {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        List<TestSuite> testSuites = null;
+        try {
+            Query query = entityManager.createQuery("FROM TestSuite");
+            testSuites = query.getResultList();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+        return testSuites;
+    }
+
+    // Read by name
+    public TestSuite getTestSuiteByName(String name) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        TestSuite testSuite = null;
+        try {
+            Query query = entityManager.createQuery("FROM TestSuite ts WHERE ts.name = :name");
+            query.setParameter("name", name);
+            testSuite = (TestSuite) query.getSingleResult(); // returns a single result or throws NoResultException
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+        return testSuite;
+    }
+
+    // Close EntityManagerFactory when not needed
+    public void close() {
+        if (entityManagerFactory != null && entityManagerFactory.isOpen()) {
+            entityManagerFactory.close();
+        }
+    }
+}
+
+ <persistence-unit name="hibernate_test" transaction-type="RESOURCE_LOCAL">
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+        <class>com.yourpackage.TestSuite</class> <!-- Your entity class -->
+        <!-- Add other entity classes here -->
+        
+        <!-- JDBC Configuration -->
+        <properties>

@@ -1,0 +1,84 @@
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
+import javax.persistence.Query;
+import java.util.List;
+
+public class TestStepDAO {
+
+    private EntityManagerFactory entityManagerFactory;
+
+    public TestStepDAO() {
+        // Initialize EntityManagerFactory using persistence unit defined in persistence.xml
+        entityManagerFactory = Persistence.createEntityManagerFactory("hibernate_test");
+    }
+
+    // Get test step by ID
+    public TestStep getTestStepById(String stepId) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        TestStep testStep = null;
+        try {
+            testStep = entityManager.find(TestStep.class, stepId);  // Find the TestStep by step_id
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+        return testStep;
+    }
+
+    // Get test steps by test_case_id
+    public List<TestStep> getTestStepsByTestCaseId(String testCaseId) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        List<TestStep> testSteps = null;
+        try {
+            // Query to get all test steps for a given test_case_id
+            Query query = entityManager.createQuery("FROM TestStep ts WHERE ts.testCaseId = :testCaseId ORDER BY ts.stepOrder");
+            query.setParameter("testCaseId", testCaseId);
+            testSteps = query.getResultList();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+        return testSteps;
+    }
+
+    // Get test step by name
+    public TestStep getTestStepByName(String name) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        TestStep testStep = null;
+        try {
+            Query query = entityManager.createQuery("FROM TestStep ts WHERE ts.name = :name");
+            query.setParameter("name", name);
+            testStep = (TestStep) query.getSingleResult();  // Will return a single result or throw NoResultException
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+        return testStep;
+    }
+
+    // Get all test steps
+    public List<TestStep> getAllTestSteps() {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        List<TestStep> testSteps = null;
+        try {
+            Query query = entityManager.createQuery("FROM TestStep");
+            testSteps = query.getResultList();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+        return testSteps;
+    }
+
+    // Close EntityManagerFactory when not needed
+    public void close() {
+        if (entityManagerFactory != null && entityManagerFactory.isOpen()) {
+            entityManagerFactory.close();
+        }
+    }
+}

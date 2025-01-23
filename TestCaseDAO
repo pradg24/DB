@@ -1,0 +1,103 @@
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
+import javax.persistence.Query;
+import java.util.List;
+
+public class TestCaseDAO {
+
+    private EntityManagerFactory entityManagerFactory;
+
+    public TestCaseDAO() {
+        // Initialize EntityManagerFactory using persistence unit defined in persistence.xml
+        entityManagerFactory = Persistence.createEntityManagerFactory("hibernate_test");
+    }
+
+    // Read by test_case_id
+    public TestCase getTestCase(String testCaseId) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        TestCase testCase = null;
+        try {
+            testCase = entityManager.find(TestCase.class, testCaseId);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+        return testCase;
+    }
+
+    // Read by suite_id
+    public List<TestCase> getTestCasesBySuiteId(String suiteId) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        List<TestCase> testCases = null;
+        try {
+            Query query = entityManager.createQuery("FROM TestCase tc WHERE tc.suiteId = :suiteId");
+            query.setParameter("suiteId", suiteId);
+            testCases = query.getResultList();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+        return testCases;
+    }
+
+    // Read by name
+    public TestCase getTestCaseByName(String name) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        TestCase testCase = null;
+        try {
+            Query query = entityManager.createQuery("FROM TestCase tc WHERE tc.name = :name");
+            query.setParameter("name", name);
+            testCase = (TestCase) query.getSingleResult(); // returns a single result or throws NoResultException
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+        return testCase;
+    }
+
+    // Read all test cases
+    public List<TestCase> getAllTestCases() {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        List<TestCase> testCases = null;
+        try {
+            Query query = entityManager.createQuery("FROM TestCase");
+            testCases = query.getResultList();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+        return testCases;
+    }
+
+    // Read test cases by suite_name
+    public List<TestCase> getTestCasesBySuiteName(String suiteName) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        List<TestCase> testCases = null;
+        try {
+            // Join test_cases and test_suites on suite_id and filter by suite_name
+            String jpql = "SELECT tc FROM TestCase tc " +
+                          "JOIN TestSuite ts ON tc.suiteId = ts.suiteId " +
+                          "WHERE ts.name = :suiteName";
+            Query query = entityManager.createQuery(jpql);
+            query.setParameter("suiteName", suiteName);
+            testCases = query.getResultList();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+        return testCases;
+    }
+
+    // Close EntityManagerFactory when not needed
+    public void close() {
+        if (entityManagerFactory != null && entityManagerFactory.isOpen()) {
+            entityManagerFactory.close();
+        }
+    }
+}

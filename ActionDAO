@@ -1,0 +1,83 @@
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
+import javax.persistence.Query;
+import java.util.List;
+
+public class ActionDAO {
+
+    private EntityManagerFactory entityManagerFactory;
+
+    public ActionDAO() {
+        // Initialize EntityManagerFactory using persistence unit defined in persistence.xml
+        entityManagerFactory = Persistence.createEntityManagerFactory("hibernate_test");
+    }
+
+    // Get action by action_id
+    public Action getActionById(String actionId) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        Action action = null;
+        try {
+            action = entityManager.find(Action.class, actionId);  // Find the Action by action_id
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+        return action;
+    }
+
+    // Get action by name
+    public Action getActionByName(String name) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        Action action = null;
+        try {
+            Query query = entityManager.createQuery("FROM Action a WHERE a.name = :name");
+            query.setParameter("name", name);
+            action = (Action) query.getSingleResult();  // Will return a single result or throw NoResultException
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+        return action;
+    }
+
+    // Get actions by type
+    public List<Action> getActionsByType(String type) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        List<Action> actions = null;
+        try {
+            Query query = entityManager.createQuery("FROM Action a WHERE a.type = :type");
+            query.setParameter("type", type);
+            actions = query.getResultList();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+        return actions;
+    }
+
+    // Get all actions
+    public List<Action> getAllActions() {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        List<Action> actions = null;
+        try {
+            Query query = entityManager.createQuery("FROM Action");
+            actions = query.getResultList();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+        return actions;
+    }
+
+    // Close EntityManagerFactory when not needed
+    public void close() {
+        if (entityManagerFactory != null && entityManagerFactory.isOpen()) {
+            entityManagerFactory.close();
+        }
+    }
+}

@@ -1,0 +1,59 @@
+package com.example.mq;
+
+import javax.jms.*;
+import com.ibm.mq.jms.MQQueueConnectionFactory;
+import com.ibm.mq.jms.MQQueue;
+import com.ibm.mq.MQException;
+import com.ibm.mq.constants.CMQC;
+
+public class MQSender {
+    
+    private static final String MQ_HOST = "your-mq-host";
+    private static final int MQ_PORT = 1414; // Default MQ port
+    private static final String MQ_QUEUE_MANAGER = "your-queue-manager";
+    private static final String MQ_QUEUE_NAME = "your-queue-name";
+    private static final String MQ_CHANNEL = "your-channel";
+
+    public static void main(String[] args) {
+        sendMessage("Hello, IBM MQ!");
+    }
+
+    public static void sendMessage(String messageText) {
+        MQQueueConnectionFactory connectionFactory = new MQQueueConnectionFactory();
+        Connection connection = null;
+        Session session = null;
+        MessageProducer producer = null;
+
+        try {
+            // Set MQ connection properties
+            connectionFactory.setHostName(MQ_HOST);
+            connectionFactory.setPort(MQ_PORT);
+            connectionFactory.setQueueManager(MQ_QUEUE_MANAGER);
+            connectionFactory.setChannel(MQ_CHANNEL);
+
+            // Create connection, session, and producer
+            connection = connectionFactory.createConnection();
+            session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+            Queue queue = new MQQueue(MQ_QUEUE_NAME);
+            producer = session.createProducer(queue);
+
+            // Create and send message
+            TextMessage message = session.createTextMessage(messageText);
+            producer.send(message);
+            System.out.println("Message sent to queue: " + MQ_QUEUE_NAME);
+
+        } catch (JMSException e) {
+            e.printStackTrace();
+        } catch (MQException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (producer != null) producer.close();
+                if (session != null) session.close();
+                if (connection != null) connection.close();
+            } catch (JMSException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}

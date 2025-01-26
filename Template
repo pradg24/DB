@@ -113,5 +113,39 @@ BEGIN
     );
 END;
 /
+CREATE OR REPLACE PROCEDURE add_validation_params (
+    p_fields IN SYS.ODCIVARCHAR2LIST,
+    p_values IN SYS.ODCIVARCHAR2LIST
+) AS
+    -- Ensure the input collections have the same size
+    l_count INTEGER := p_fields.COUNT;
+BEGIN
+    IF l_count != p_values.COUNT THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Input collections must have the same number of elements.');
+    END IF;
+
+    -- Bulk insert using FORALL
+    FORALL i IN 1..l_count
+        INSERT INTO validation_params (
+            field,
+            value,
+            last_updated,
+            last_updated_by
+        ) VALUES (
+            p_fields(i),
+            p_values(i),
+            SYSDATE,
+            USER
+        );
+END add_validation_params;
+
+DECLARE
+    -- Define collections to hold field and value pairs
+    l_fields SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST('Field1', 'Field2', 'Field3');
+    l_values SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST('Value1', 'Value2', 'Value3');
+BEGIN
+    -- Call the procedure to insert the records
+    add_validation_params(p_fields => l_fields, p_values => l_values);
+END;
 
 

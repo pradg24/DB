@@ -183,3 +183,6 @@ BEGIN
             USER
         );
 END add_mx_params;
+
+SET SERVEROUTPUT ON;
+

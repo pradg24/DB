@@ -148,4 +148,38 @@ BEGIN
     add_validation_params(p_fields => l_fields, p_values => l_values);
 END;
 
+CREATE OR REPLACE PROCEDURE add_mx_params (
+    p_xpaths IN SYS.ODCIVARCHAR2LIST,
+    p_values IN SYS.ODCIVARCHAR2LIST
+) AS
+    -- Ensure the input collections have the same size
+    l_count INTEGER := p_xpaths.COUNT;
+BEGIN
+    -- Debugging: Log the counts of the collections
+    DBMS_OUTPUT.PUT_LINE('p_xpaths count: ' || l_count);
+    DBMS_OUTPUT.PUT_LINE('p_values count: ' || p_values.COUNT);
 
+    IF l_count != p_values.COUNT THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Input collections must have the same number of elements.');
+    END IF;
+
+    -- Debugging: Log the values of the collections
+    FOR i IN 1..l_count LOOP
+        DBMS_OUTPUT.PUT_LINE('p_xpaths(' || i || '): ' || p_xpaths(i));
+        DBMS_OUTPUT.PUT_LINE('p_values(' || i || '): ' || p_values(i));
+    END LOOP;
+
+    -- Bulk insert using FORALL
+    FORALL i IN 1..l_count
+        INSERT INTO mx_params (
+            xpath,
+            value,
+            last_updated,
+            last_updated_by
+        ) VALUES (
+            p_xpaths(i),
+            p_values(i),
+            SYSDATE,
+            USER
+        );
+END add_mx_params;

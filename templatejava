@@ -1,0 +1,183 @@
+Got it! Here's the complete Java code, including the classes and the `DatabaseFetcher` class, all in one place for easy copying:
+
+```java
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+public class DatabaseFetcher {
+
+    private static final String DB_URL = "jdbc:oracle:thin:@your_db_host:1521:your_db_service";
+    private static final String DB_USER = "your_db_user";
+    private static final String DB_PASSWORD = "your_db_password";
+
+    public static void main(String[] args) {
+        try (Connection connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
+            List<PaymentTemplate> paymentTemplates = fetchPaymentTemplates(connection);
+            List<MxParam> mxParams = fetchMxParams(connection);
+            List<ValidationParam> validationParams = fetchValidationParams(connection);
+
+            // Print the fetched data
+            paymentTemplates.forEach(System.out::println);
+            mxParams.forEach(System.out::println);
+            validationParams.forEach(System.out::println);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static List<PaymentTemplate> fetchPaymentTemplates(Connection connection) throws SQLException {
+        String query = "SELECT template_id, template_name, template_description, last_updated, last_updated_by, mx_message FROM payment_templates";
+        List<PaymentTemplate> paymentTemplates = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement(query);
+             ResultSet resultSet = statement.executeQuery()) {
+
+            while (resultSet.next()) {
+                PaymentTemplate template = new PaymentTemplate();
+                template.setTemplateId(resultSet.getInt("template_id"));
+                template.setTemplateName(resultSet.getString("template_name"));
+                template.setTemplateDescription(resultSet.getString("template_description"));
+                template.setLastUpdated(resultSet.getDate("last_updated"));
+                template.setLastUpdatedBy(resultSet.getString("last_updated_by"));
+                template.setMxMessage(resultSet.getString("mx_message"));
+
+                paymentTemplates.add(template);
+            }
+        }
+        return paymentTemplates;
+    }
+
+    private static List<MxParam> fetchMxParams(Connection connection) throws SQLException {
+        String query = "SELECT id, xpath, value, last_updated, last_updated_by FROM mx_params";
+        List<MxParam> mxParams = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement(query);
+             ResultSet resultSet = statement.executeQuery()) {
+
+            while (resultSet.next()) {
+                MxParam param = new MxParam();
+                param.setId(resultSet.getInt("id"));
+                param.setXpath(resultSet.getString("xpath"));
+                param.setValue(resultSet.getString("value"));
+                param.setLastUpdated(resultSet.getDate("last_updated"));
+                param.setLastUpdatedBy(resultSet.getString("last_updated_by"));
+
+                mxParams.add(param);
+            }
+        }
+        return mxParams;
+    }
+
+    private static List<ValidationParam> fetchValidationParams(Connection connection) throws SQLException {
+        String query = "SELECT id, field, value FROM validation_params";
+        List<ValidationParam> validationParams = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement(query);
+             ResultSet resultSet = statement.executeQuery()) {
+
+            while (resultSet.next()) {
+                ValidationParam param = new ValidationParam();
+                param.setId(resultSet.getInt("id"));
+                param.setField(resultSet.getString("field"));
+                param.setValue(resultSet.getString("value"));
+
+                validationParams.add(param);
+            }
+        }
+        return validationParams;
+    }
+}
+
+class PaymentTemplate {
+    private int templateId;
+    private String templateName;
+    private String templateDescription;
+    private java.sql.Date lastUpdated;
+    private String lastUpdatedBy;
+    private String mxMessage;
+
+    // Getters and Setters
+    public int getTemplateId() { return templateId; }
+    public void setTemplateId(int templateId) { this.templateId = templateId; }
+    public String getTemplateName() { return templateName; }
+    public void setTemplateName(String templateName) { this.templateName = templateName; }
+    public String getTemplateDescription() { return templateDescription; }
+    public void setTemplateDescription(String templateDescription) { this.templateDescription = templateDescription; }
+    public java.sql.Date getLastUpdated() { return lastUpdated; }
+    public void setLastUpdated(java.sql.Date lastUpdated) { this.lastUpdated = lastUpdated; }
+    public String getLastUpdatedBy() { return lastUpdatedBy; }
+    public void setLastUpdatedBy(String lastUpdatedBy) { this.lastUpdatedBy = lastUpdatedBy; }
+    public String getMxMessage() { return mxMessage; }
+    public void setMxMessage(String mxMessage) { this.mxMessage = mxMessage; }
+
+    @Override
+    public String toString() {
+        return "PaymentTemplate{" +
+                "templateId=" + templateId +
+                ", templateName='" + templateName + '\'' +
+                ", templateDescription='" + templateDescription + '\'' +
+                ", lastUpdated=" + lastUpdated +
+                ", lastUpdatedBy='" + lastUpdatedBy + '\'' +
+                ", mxMessage='" + mxMessage + '\'' +
+                '}';
+    }
+}
+
+class MxParam {
+    private int id;
+    private String xpath;
+    private String value;
+    private java.sql.Date lastUpdated;
+    private String lastUpdatedBy;
+
+    // Getters and Setters
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
+    public String getXpath() { return xpath; }
+    public void setXpath(String xpath) { this.xpath = xpath; }
+    public String getValue() { return value; }
+    public void setValue(String value) { this.value = value; }
+    public java.sql.Date getLastUpdated() { return lastUpdated; }
+    public void setLastUpdated(java.sql.Date lastUpdated) { this.lastUpdated = lastUpdated; }
+    public String getLastUpdatedBy() { return lastUpdatedBy; }
+    public void setLastUpdatedBy(String lastUpdatedBy) { this.lastUpdatedBy = lastUpdatedBy; }
+
+    @Override
+    public String toString() {
+        return "MxParam{" +
+                "id=" + id +
+                ", xpath='" + xpath + '\'' +
+                ", value='" + value + '\'' +
+                ", lastUpdated=" + lastUpdated +
+                ", lastUpdatedBy='" + lastUpdatedBy + '\'' +
+                '}';
+    }
+}
+
+class ValidationParam {
+    private int id;
+    private String field;
+    private String value;
+
+    // Getters and Setters
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
+    public String getField() { return field; }
+    public void setField(String field) { this.field = field; }
+    public String getValue() { return value; }
+    public void setValue(String value) { this.value = value; }
+
+    @Override
+    public String toString() {
+        return "ValidationParam{" +
+                "id=" + id +
+                ", field='" + field + '\'' +
+                ", value='" + value + '\'' +
+                '}';
+    }
+}
+```
+
+You can copy this entire block of code and paste it into your Java environment. This code includes the `DatabaseFetcher` class and the corresponding data classes (`PaymentTemplate`, `MxParam`, and `ValidationParam`). If you need any further assistance, feel free to ask!

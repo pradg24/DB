@@ -47,3 +47,12 @@ DECLARE
 BEGIN
     add_validation_params(v_group_name, v_params);
 END;
+
+BEGIN
+    add_test_suite(
+        p_suite_name => 'Regression Suite',
+        p_suite_description => 'This is a suite for regression testing.',
+        p_is_parallel => 'Y'  -- 'Y' means parallel execution, 'N' would mean sequential
+    );
+END;
+

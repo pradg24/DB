@@ -1,14 +1,15 @@
 -- Create the procedure to add mx_params
 CREATE OR REPLACE PROCEDURE add_mx_params (
     p_xpaths IN SYS.ODCIVARCHAR2LIST,
-    p_values IN SYS.ODCIVARCHAR2LIST
+    p_values IN SYS.ODCIVARCHAR2LIST,
+    p_field_groups IN SYS.ODCIVARCHAR2LIST
 ) AS
     -- Ensure the input collections have the same size
     l_count INTEGER := p_xpaths.COUNT;
     l_errors EXCEPTION;
     PRAGMA EXCEPTION_INIT(l_errors, -24381); -- Bulk errors
 BEGIN
-    IF l_count != p_values.COUNT THEN
+    IF l_count != p_values.COUNT OR l_count != p_field_groups.COUNT THEN
         RAISE_APPLICATION_ERROR(-20001, 'Input collections must have the same number of elements.');
     END IF;
 
@@ -24,6 +25,9 @@ BEGIN
         IF p_values(i) IS NULL THEN
             RAISE_APPLICATION_ERROR(-20004, 'Value cannot be null.');
         END IF;
+        IF p_field_groups(i) IS NULL OR p_field_groups(i) = '' THEN
+            RAISE_APPLICATION_ERROR(-20005, 'Field group cannot be null or empty.');
+        END IF;
     END LOOP;
 
     -- Bulk insert using FORALL
@@ -32,11 +36,13 @@ BEGIN
             INSERT INTO mx_params (
                 xpath,
                 value,
+                field_group,
                 last_updated,
                 last_updated_by
             ) VALUES (
                 p_xpaths(i),
                 p_values(i),
+                p_field_groups(i),
                 SYSDATE,
                 USER
             );
@@ -46,20 +52,20 @@ BEGIN
                 DBMS_OUTPUT.PUT_LINE('Error on record ' || SQL%BULK_EXCEPTIONS(i).ERROR_INDEX || 
                                      ': ' || SQLERRM(SQL%BULK_EXCEPTIONS(i).ERROR_CODE));
             END LOOP;
-            RAISE_APPLICATION_ERROR(-20005, 'Bulk insert failed. Check log for details.');
+            RAISE_APPLICATION_ERROR(-20006, 'Bulk insert failed. Check log for details.');
         WHEN OTHERS THEN
-            RAISE_APPLICATION_ERROR(-20006, 'Error adding mx_params: ' || SQLERRM);
+            RAISE_APPLICATION_ERROR(-20007, 'Error adding mx_params: ' || SQLERRM);
     END;
 
     -- Logging
     DBMS_OUTPUT.PUT_LINE('Successfully inserted ' || l_count || ' mx_params.');
 END add_mx_params;
 /
-
 DECLARE
     -- Define collections to hold the data
     TYPE t_xpaths IS TABLE OF VARCHAR2(100);
     TYPE t_values IS TABLE OF VARCHAR2(255);
+    TYPE t_field_groups IS TABLE OF VARCHAR2(100);
 
     v_xpaths t_xpaths := t_xpaths(
         '/Document/Payment/Amount',
@@ -70,11 +76,17 @@ DECLARE
         '1000.00',
         '2025-01-26'
     );
+
+    v_field_groups t_field_groups := t_field_groups(
+        'Group1',
+        'Group2'
+    );
 BEGIN
     -- Call the procedure to insert the parameters
     add_mx_params(
         p_xpaths => v_xpaths,
-        p_values => v_values
+        p_values => v_values,
+        p_field_groups => v_field_groups
     );
 END;
 /

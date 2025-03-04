@@ -1,0 +1,73 @@
+-- Procedure to add validation parameters
+CREATE OR REPLACE PROCEDURE add_validation_params (
+    p_fields IN SYS.ODCIVARCHAR2LIST,
+    p_values IN SYS.ODCIVARCHAR2LIST,
+    p_validation_groups IN SYS.ODCIVARCHAR2LIST
+) AS
+    -- Ensure the input collections have the same size
+    l_count INTEGER := p_fields.COUNT;
+    l_errors EXCEPTION;
+    PRAGMA EXCEPTION_INIT(l_errors, -24381); -- Bulk errors
+BEGIN
+    IF l_count != p_values.COUNT OR l_count != p_validation_groups.COUNT THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Input collections must have the same number of elements.');
+    END IF;
+
+    -- Parameter validation
+    IF l_count = 0 THEN
+        RAISE_APPLICATION_ERROR(-20002, 'Input collections cannot be empty.');
+    END IF;
+
+    FOR i IN 1 .. l_count LOOP
+        IF p_fields(i) IS NULL OR p_fields(i) = '' THEN
+            RAISE_APPLICATION_ERROR(-20003, 'Field cannot be null or empty.');
+        END IF;
+        IF p_values(i) IS NULL THEN
+            RAISE_APPLICATION_ERROR(-20004, 'Value cannot be null.');
+        END IF;
+        IF p_validation_groups(i) IS NULL OR p_validation_groups(i) = '' THEN
+            RAISE_APPLICATION_ERROR(-20005, 'Validation group cannot be null or empty.');
+        END IF;
+    END LOOP;
+
+    -- Bulk insert using FORALL
+    BEGIN
+        FORALL i IN 1..l_count SAVE EXCEPTIONS
+            INSERT INTO validation_params (
+                field,
+                value,
+                validation_group,
+                last_updated,
+                last_updated_by
+            ) VALUES (
+                p_fields(i),
+                p_values(i),
+                p_validation_groups(i),
+                SYSDATE,
+                USER
+            );
+    EXCEPTION
+        WHEN l_errors THEN
+            FOR i IN 1 .. SQL%BULK_EXCEPTIONS.COUNT LOOP
+                DBMS_OUTPUT.PUT_LINE('Error on record ' || SQL%BULK_EXCEPTIONS(i).ERROR_INDEX || 
+                                     ': ' || SQLERRM(SQL%BULK_EXCEPTIONS(i).ERROR_CODE));
+            END LOOP;
+            RAISE_APPLICATION_ERROR(-20006, 'Bulk insert failed. Check log for details.');
+        WHEN OTHERS THEN
+            RAISE_APPLICATION_ERROR(-20007, 'Error adding validation parameters: ' || SQLERRM);
+    END;
+
+    -- Logging
+    DBMS_OUTPUT.PUT_LINE('Successfully inserted ' || l_count || ' validation parameters.');
+END add_validation_params;
+/
+DECLARE
+    -- Define collections to hold field, value, and validation group pairs
+    l_fields SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST('Field1', 'Field2', 'Field3');
+    l_values SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST('Value1', 'Value2', 'Value3');
+    l_validation_groups SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST('Group1', 'Group2', 'Group3');
+BEGIN
+    -- Call the procedure to insert the records
+    add_validation_params(p_fields => l_fields, p_values => l_values, p_validation_groups => l_validation_groups);
+END;
+/

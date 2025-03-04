@@ -1,0 +1,56 @@
+-- Procedure to add a payment template
+CREATE OR REPLACE PROCEDURE add_payment_template (
+    p_template_name        IN payment_templates.template_name%TYPE,
+    p_template_description IN payment_templates.template_description%TYPE,
+    p_mx_message           IN XMLType
+) AS
+BEGIN
+    -- Parameter validation
+    IF p_template_name IS NULL OR p_template_name = '' THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Template name cannot be null or empty');
+    END IF;
+
+    IF p_template_description IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20002, 'Template description cannot be null');
+    END IF;
+
+    IF p_mx_message IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20003, 'MX message cannot be null');
+    END IF;
+
+    -- Insert into payment_templates
+    INSERT INTO payment_templates (
+        template_name,
+        template_description,
+        last_updated,
+        last_updated_by,
+        mx_message
+    ) VALUES (
+        p_template_name,
+        p_template_description,
+        SYSDATE,
+        USER,  -- Automatically captures the username of the person executing the procedure
+        p_mx_message
+    );
+
+    -- Logging
+    DBMS_OUTPUT.PUT_LINE('Successfully added payment template: ' || p_template_name);
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE_APPLICATION_ERROR(-20004, 'Error adding payment template: ' || SQLERRM);
+END add_payment_template;
+/
+
+-- Call the procedure with sample data
+DECLARE
+    v_template_name        payment_templates.template_name%TYPE := 'Sample Template';
+    v_template_description payment_templates.template_description%TYPE := 'This is a sample payment template.';
+    v_mx_message           XMLType := XMLType('<YourXMLContentHere>');
+BEGIN
+    add_payment_template(
+        p_template_name        => v_template_name,
+        p_template_description => v_template_description,
+        p_mx_message           => v_mx_message
+    );
+END;
+/

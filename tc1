@@ -1,0 +1,164 @@
+-- Create Type for Action Arguments
+CREATE OR REPLACE TYPE action_argument_obj AS OBJECT (
+    argument_name VARCHAR2(100),
+    argument_value CLOB
+);
+
+CREATE OR REPLACE TYPE action_argument_table AS TABLE OF action_argument_obj;
+/
+
+-- Create Type for Test Steps (renamed to step_obj)
+CREATE OR REPLACE TYPE step_obj AS OBJECT (
+    action VARCHAR2(100),
+    type VARCHAR2(50),
+    execution_order NUMBER,
+    locator VARCHAR2(255),
+    action_arguments action_argument_table
+);
+
+CREATE OR REPLACE TYPE step_table AS TABLE OF step_obj;
+/
+
+-- Function to get suite_id
+CREATE OR REPLACE FUNCTION get_suite_id(p_suite_name IN VARCHAR2) RETURN NUMBER IS
+    v_suite_id NUMBER;
+BEGIN
+    SELECT suite_id INTO v_suite_id FROM test_suites WHERE suite_name = p_suite_name;
+    RETURN v_suite_id;
+END;
+/
+
+-- Function to get action_id
+CREATE OR REPLACE FUNCTION get_action_id(p_action IN VARCHAR2) RETURN NUMBER IS
+    v_action_id NUMBER;
+BEGIN
+    SELECT action_id INTO v_action_id FROM actions WHERE action = p_action;
+    RETURN v_action_id;
+END;
+/
+
+-- Procedure to insert test case
+CREATE OR REPLACE PROCEDURE insert_test_case (
+    p_suite_name IN VARCHAR2,
+    p_description IN CLOB,
+    p_is_execute IN VARCHAR2 DEFAULT 'Y',
+    p_is_parallel IN VARCHAR2 DEFAULT 'N',
+    p_test_steps IN step_table
+)
+IS
+    v_suite_id NUMBER;
+    v_test_case_id NUMBER;
+    v_step_id NUMBER;
+    v_action_id NUMBER;
+BEGIN
+    -- Parameter validation
+    IF p_suite_name IS NULL OR p_suite_name = '' THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Suite name cannot be null or empty');
+    END IF;
+
+    IF p_description IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20002, 'Description cannot be null');
+    END IF;
+
+    -- Get suite_id
+    v_suite_id := get_suite_id(p_suite_name);
+
+    -- Insert into test_cases
+    INSERT INTO test_cases (
+        suite_id,
+        description,
+        is_execute,
+        is_parallel,
+        created_at,
+        updated_at,
+        updated_by
+    ) VALUES (
+        v_suite_id,
+        p_description,
+        p_is_execute,
+        p_is_parallel,
+        SYSDATE,
+        SYSDATE,
+        USER -- Use the current database user
+    ) RETURNING test_case_id INTO v_test_case_id;
+
+    -- Insert test steps
+    FOR i IN 1 .. p_test_steps.COUNT LOOP
+        -- Get action_id
+        v_action_id := get_action_id(p_test_steps(i).action);
+
+        -- Insert into test_steps
+        INSERT INTO test_steps (
+            test_case_id,
+            action,
+            type,
+            execution_order,
+            locator,
+            created_at,
+            updated_at,
+            updated_by
+        ) VALUES (
+            v_test_case_id,
+            p_test_steps(i).action,
+            p_test_steps(i).type,
+            p_test_steps(i).execution_order,
+            p_test_steps(i).locator,
+            SYSDATE,
+            SYSDATE,
+            USER -- Use the current database user
+        ) RETURNING step_id INTO v_step_id;
+
+        -- Insert action arguments for each test step
+        FOR j IN 1 .. p_test_steps(i).action_arguments.COUNT LOOP
+            INSERT INTO action_arguments (
+                action_id,
+                step_id,
+                argument_name,
+                argument_value
+            ) VALUES (
+                v_action_id, -- Use the action_id found earlier
+                v_step_id,
+                p_test_steps(i).action_arguments(j).argument_name,
+                p_test_steps(i).action_arguments(j).argument_value
+            );
+        END LOOP;
+    END LOOP;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RAISE_APPLICATION_ERROR(-20005, 'Suite name or action not found: ' || p_suite_name);
+    WHEN OTHERS THEN
+        RAISE_APPLICATION_ERROR(-20004, 'Error adding test case, test steps, or action arguments: ' || SQLERRM || ' at ' || DBMS_UTILITY.FORMAT_CALL_STACK);
+END;
+/
+
+DECLARE
+    v_suite_name VARCHAR2(255) := 'Suite Name'; -- Replace with the appropriate suite name
+    v_description CLOB := 'This is a test case description.';
+    v_is_execute VARCHAR2(1) := 'Y';
+    v_is_parallel VARCHAR2(1) := 'N';
+    v_test_steps step_table := step_table(
+        step_obj(
+            'Action1',
+            'Type1',
+            1,
+            'Locator1',
+            action_argument_table(
+                action_argument_obj('arg1', 'value1'),
+                action_argument_obj('arg2', 'value2')
+            )
+        ),
+        step_obj(
+            'Action2',
+            'Type2',
+            2,
+            'Locator2',
+            action_argument_table(
+                action_argument_obj('arg1', 'value1'),
+                action_argument_obj('arg2', 'value2')
+            )
+        )
+    );
+BEGIN
+    insert_test_case(v_suite_name, v_description, v_is_execute, v_is_parallel, v_test_steps);
+END;
+/

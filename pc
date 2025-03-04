@@ -1,0 +1,247 @@
+-- Procedure to insert precondition
+CREATE OR REPLACE PROCEDURE insert_preconditions (
+    p_suite_name IN VARCHAR2,
+    p_description IN CLOB,
+    p_is_execute IN VARCHAR2 DEFAULT 'Y',
+    p_is_parallel IN VARCHAR2 DEFAULT 'N',
+    p_test_steps IN step_table
+)
+IS
+    v_suite_id NUMBER;
+    v_precondition_id NUMBER;
+    v_step_id NUMBER;
+    v_action_id NUMBER;
+    l_errors EXCEPTION;
+    PRAGMA EXCEPTION_INIT(l_errors, -24381); -- Bulk errors
+BEGIN
+    -- Parameter validation
+    IF p_suite_name IS NULL OR p_suite_name = '' THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Suite name cannot be null or empty');
+    END IF;
+
+    IF p_description IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20002, 'Description cannot be null');
+    END IF;
+
+    -- Get suite_id
+    v_suite_id := get_suite_id(p_suite_name);
+
+    -- Insert into preconditions
+    INSERT INTO preconditions (
+        suite_id,
+        description,
+        created_at,
+        updated_at,
+        updated_by
+    ) VALUES (
+        v_suite_id,
+        p_description,
+        SYSDATE,
+        SYSDATE,
+        USER -- Use the current database user
+    ) RETURNING precondition_id INTO v_precondition_id;
+
+    -- Insert test steps
+    BEGIN
+        FORALL i IN 1 .. p_test_steps.COUNT SAVE EXCEPTIONS
+            -- Get action_id
+            v_action_id := get_action_id(p_test_steps(i).action);
+
+            -- Insert into test_steps
+            INSERT INTO test_steps (
+                precondition_id,
+                action,
+                type,
+                execution_order,
+                locator,
+                created_at,
+                updated_at,
+                updated_by
+            ) VALUES (
+                v_precondition_id,
+                p_test_steps(i).action,
+                p_test_steps(i).type,
+                p_test_steps(i).execution_order,
+                p_test_steps(i).locator,
+                SYSDATE,
+                SYSDATE,
+                USER -- Use the current database user
+            ) RETURNING step_id INTO v_step_id;
+
+            -- Insert action arguments for each test step
+            FOR j IN 1 .. p_test_steps(i).action_arguments.COUNT LOOP
+                INSERT INTO action_arguments (
+                    action_id,
+                    step_id,
+                    argument_name,
+                    argument_value
+                ) VALUES (
+                    v_action_id, -- Use the action_id found earlier
+                    v_step_id,
+                    p_test_steps(i).action_arguments(j).argument_name,
+                    p_test_steps(i).action_arguments(j).argument_value
+                );
+            END LOOP;
+    EXCEPTION
+        WHEN l_errors THEN
+            FOR i IN 1 .. SQL%BULK_EXCEPTIONS.COUNT LOOP
+                DBMS_OUTPUT.PUT_LINE('Error on record ' || SQL%BULK_EXCEPTIONS(i).ERROR_INDEX || 
+                                     ': ' || SQLERRM(SQL%BULK_EXCEPTIONS(i).ERROR_CODE));
+            END LOOP;
+            RAISE_APPLICATION_ERROR(-20006, 'Bulk insert failed. Check log for details.');
+        WHEN OTHERS THEN
+            RAISE_APPLICATION_ERROR(-20007, 'Error adding test steps or action arguments: ' || SQLERRM);
+    END;
+
+    -- Logging
+    DBMS_OUTPUT.PUT_LINE('Successfully inserted precondition with ID: ' || v_precondition_id);
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RAISE_APPLICATION_ERROR(-20005, 'Suite name or action not found: ' || p_suite_name);
+    WHEN OTHERS THEN
+        RAISE_APPLICATION_ERROR(-20004, 'Error adding precondition: ' || SQLERRM || ' at ' || DBMS_UTILITY.FORMAT_CALL_STACK);
+END;
+/
+
+-- Procedure to insert teardown
+CREATE OR REPLACE PROCEDURE insert_teardowns (
+    p_suite_name IN VARCHAR2,
+    p_description IN CLOB,
+    p_is_execute IN VARCHAR2 DEFAULT 'Y',
+    p_is_parallel IN VARCHAR2 DEFAULT 'N',
+    p_test_steps IN step_table
+)
+IS
+    v_suite_id NUMBER;
+    v_teardown_id NUMBER;
+    v_step_id NUMBER;
+    v_action_id NUMBER;
+    l_errors EXCEPTION;
+    PRAGMA EXCEPTION_INIT(l_errors, -24381); -- Bulk errors
+BEGIN
+    -- Parameter validation
+    IF p_suite_name IS NULL OR p_suite_name = '' THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Suite name cannot be null or empty');
+    END IF;
+
+    IF p_description IS NULL THEN
+        RAISE_APPLICATION_ERROR(-20002, 'Description cannot be null');
+    END IF;
+
+    -- Get suite_id
+    v_suite_id := get_suite_id(p_suite_name);
+
+    -- Insert into teardowns
+    INSERT INTO teardowns (
+        suite_id,
+        description,
+        created_at,
+        updated_at,
+        updated_by
+    ) VALUES (
+        v_suite_id,
+        p_description,
+        SYSDATE,
+        SYSDATE,
+        USER -- Use the current database user
+    ) RETURNING teardown_id INTO v_teardown_id;
+
+    -- Insert test steps
+    BEGIN
+        FORALL i IN 1 .. p_test_steps.COUNT SAVE EXCEPTIONS
+            -- Get action_id
+            v_action_id := get_action_id(p_test_steps(i).action);
+
+            -- Insert into test_steps
+            INSERT INTO test_steps (
+                teardown_id,
+                action,
+                type,
+                execution_order,
+                locator,
+                created_at,
+                updated_at,
+                updated_by
+            ) VALUES (
+                v_teardown_id,
+                p_test_steps(i).action,
+                p_test_steps(i).type,
+                p_test_steps(i).execution_order,
+                p_test_steps(i).locator,
+                SYSDATE,
+                SYSDATE,
+                USER -- Use the current database user
+            ) RETURNING step_id INTO v_step_id;
+
+            -- Insert action arguments for each test step
+            FOR j IN 1 .. p_test_steps(i).action_arguments.COUNT LOOP
+                INSERT INTO action_arguments (
+                    action_id,
+                    step_id,
+                    argument_name,
+                    argument_value
+                ) VALUES (
+                    v_action_id, -- Use the action_id found earlier
+                    v_step_id,
+                    p_test_steps(i).action_arguments(j).argument_name,
+                    p_test_steps(i).action_arguments(j).argument_value
+                );
+            END LOOP;
+    EXCEPTION
+        WHEN l_errors THEN
+            FOR i IN 1 .. SQL%BULK_EXCEPTIONS.COUNT LOOP
+                DBMS_OUTPUT.PUT_LINE('Error on record ' || SQL%BULK_EXCEPTIONS(i).ERROR_INDEX || 
+                                     ': ' || SQLERRM(SQL%BULK_EXCEPTIONS(i).ERROR_CODE));
+            END LOOP;
+            RAISE_APPLICATION_ERROR(-20006, 'Bulk insert failed. Check log for details.');
+        WHEN OTHERS THEN
+            RAISE_APPLICATION_ERROR(-20007, 'Error adding test steps or action arguments: ' || SQLERRM);
+    END;
+
+    -- Logging
+    DBMS_OUTPUT.PUT_LINE('Successfully inserted teardown with ID: ' || v_teardown_id);
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RAISE_APPLICATION_ERROR(-20005, 'Suite name or action not found: ' || p_suite_name);
+    WHEN OTHERS THEN
+        RAISE_APPLICATION_ERROR(-20004, 'Error adding teardown: ' || SQLERRM || ' at ' || DBMS_UTILITY.FORMAT_CALL_STACK);
+END;
+/
+-- Call the insert_preconditions procedure
+DECLARE
+    v_suite_name VARCHAR2(255) := 'Suite Name'; -- Replace with the appropriate suite name
+    v_description CLOB := 'This is a precondition description.';
+    v_is_execute VARCHAR2(1) := 'Y';
+    v_is_parallel VARCHAR2(1) := 'N';
+    v_test_steps step_table := step_table(
+        step_obj(
+            'Action1',
+            'Type1',
+            1,
+            'Locator1',
+            action_argument_table(
+                action_argument_obj('arg1', 'value1'),
+                action_argument_obj('arg2', 'value2')
+            )
+        ),
+        step_obj(
+            'Action2',
+            'Type2',
+            2,
+            'Locator2',
+            action_argument_table(
+                action_argument_obj('arg1', 'value1'),
+                action_argument_obj('arg2', 'value2')
+            )
+        )
+    );
+BEGIN
+    insert_preconditions(v_suite_name, v_description, v_is_execute, v_is_parallel, v_test_steps);
+END;
+/
+
+-- Call the insert_teardowns procedure
+DECLARE
+    v_suite_name VARCHAR2(255) := 'Suite Name'; -- Replace with the appropriate suite name
+    v_description CLOB := 'This is a teardown description.';
+    v_is_execute

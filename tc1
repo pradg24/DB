@@ -37,7 +37,6 @@ BEGIN
 END;
 /
 
--- Procedure to insert test case
 CREATE OR REPLACE PROCEDURE insert_test_case (
     p_suite_name IN VARCHAR2,
     p_description IN CLOB,
@@ -59,6 +58,18 @@ BEGIN
     IF p_description IS NULL THEN
         RAISE_APPLICATION_ERROR(-20002, 'Description cannot be null');
     END IF;
+
+    -- Validate execution_order uniqueness
+    FOR i IN 1 .. p_test_steps.COUNT LOOP
+        FOR j IN i + 1 .. p_test_steps.COUNT LOOP
+            IF p_test_steps(i).execution_order = p_test_steps(j).execution_order THEN
+                RAISE_APPLICATION_ERROR(
+                    -20006,
+                    'Duplicate execution_order found: ' || p_test_steps(i).execution_order
+                );
+            END IF;
+        END LOOP;
+    END LOOP;
 
     -- Get suite_id
     v_suite_id := get_suite_id(p_suite_name);
@@ -109,26 +120,7 @@ BEGIN
         ) RETURNING step_id INTO v_step_id;
 
         -- Insert action arguments for each test step
-        FOR j IN 1 .. p_test_steps(i).action_arguments.COUNT LOOP
-            INSERT INTO action_arguments (
-                action_id,
-                step_id,
-                argument_name,
-                argument_value
-            ) VALUES (
-                v_action_id, -- Use the action_id found earlier
-                v_step_id,
-                p_test_steps(i).action_arguments(j).argument_name,
-                p_test_steps(i).action_arguments(j).argument_value
-            );
-        END LOOP;
-    END LOOP;
-EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-        RAISE_APPLICATION_ERROR(-20005, 'Suite name or action not found: ' || p_suite_name);
-    WHEN OTHERS THEN
-        RAISE_APPLICATION_ERROR(-20004, 'Error adding test case, test steps, or action arguments: ' || SQLERRM || ' at ' || DBMS_UTILITY.FORMAT_CALL_STACK);
-END;
+        FOR j IN 1 .. p_test_steps(i).action
 /
 
 DECLARE

@@ -1,6 +1,5 @@
 CREATE OR REPLACE PROCEDURE insert_precondition (
     p_suite_id IN NUMBER,
-    p_test_case_id IN NUMBER DEFAULT NULL,
     p_description IN CLOB,
     p_test_steps IN step_table
 ) IS
@@ -16,17 +15,15 @@ BEGIN
     -- Insert into preconditions
     INSERT INTO preconditions (
         suite_id,
-        test_case_id,
         description,
         created_at,
         updated_at,
         updated_by
     ) VALUES (
         p_suite_id,
-        p_test_case_id,
         p_description,
-        SYSDATE,
-        SYSDATE,
+        SYSTIMESTAMP,
+        SYSTIMESTAMP,
         USER
     ) RETURNING precondition_id INTO v_precondition_id;
 
@@ -46,13 +43,13 @@ BEGIN
             updated_at,
             updated_by
         ) VALUES (
-            p_test_case_id,
+            v_precondition_id,
             p_test_steps(i).action,
             p_test_steps(i).type,
             p_test_steps(i).execution_order,
             p_test_steps(i).locator,
-            SYSDATE,
-            SYSDATE,
+            SYSTIMESTAMP,
+            SYSTIMESTAMP,
             USER
         ) RETURNING step_id INTO v_step_id;
 
@@ -73,9 +70,12 @@ BEGIN
     END LOOP;
 EXCEPTION 
     WHEN NO_DATA_FOUND THEN
-        RAISE_APPLICATION_ERROR(-20005, 'Suite not found: ' || p_suite_id);
+        RAISE_APPLICATION_ERROR(-20005, 
+            'Suite not found: ' || p_suite_id);
     WHEN OTHERS THEN
-        RAISE_APPLICATION_ERROR(-20004, 'Error adding precondition or test steps: ' || SQLERRM || ' at ' || DBMS_UTILITY.FORMAT_CALL_STACK);
+        RAISE_APPLICATION_ERROR(-20004, 
+            'Error adding precondition or test steps: ' || 
+            SQLERRM || ' at ' || DBMS_UTILITY.FORMAT_CALL_STACK);
 END;
 
 DECLARE

@@ -77,4 +77,9 @@ CHECK (
     (reference_type = 'CASE' AND test_case_id IN (SELECT test_case_id FROM test_cases)) OR
     (reference_type = 'PRECONDITION' AND test_case_id IN (SELECT precondition_id FROM preconditions))
 );
+SELECT constraint_name, table_name
+FROM user_constraints
+WHERE table_name = 'TEST_STEPS' AND constraint_name = 'FK_TEST_STEPS_TEST_CASE';
+
+ALTER TABLE test_steps DROP CONSTRAINT fk_test_steps_test_case;
 

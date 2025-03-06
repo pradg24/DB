@@ -99,3 +99,8 @@ BEGIN
         p_test_steps => v_test_steps
     );
 END;
+
+SELECT object_name, status
+FROM user_objects
+WHERE object_name = 'INSERT_PRECONDITION' AND object_type = 'PROCEDURE';
+

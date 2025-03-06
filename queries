@@ -56,3 +56,25 @@ BEGIN
     );
 END;
 
+ALTER TABLE test_steps
+ADD reference_type VARCHAR2(20)
+DEFAULT 'CASE'
+CHECK (reference_type IN ('CASE', 'PRECONDITION'));
+
+ALTER TABLE test_steps
+ADD CONSTRAINT fk_test_steps_precondition FOREIGN KEY (test_case_id)
+REFERENCES preconditions(precondition_id)
+ENABLE NOVALIDATE;
+
+ALTER TABLE test_steps
+ADD CONSTRAINT fk_test_steps_test_case FOREIGN KEY (test_case_id)
+REFERENCES test_cases(test_case_id)
+ENABLE NOVALIDATE;
+
+ALTER TABLE test_steps
+ADD CONSTRAINT chk_test_case_reference
+CHECK (
+    (reference_type = 'CASE' AND test_case_id IN (SELECT test_case_id FROM test_cases)) OR
+    (reference_type = 'PRECONDITION' AND test_case_id IN (SELECT precondition_id FROM preconditions))
+);
+

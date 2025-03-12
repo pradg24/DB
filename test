@@ -1,3 +1,5 @@
+https://amazonq.eclipsetoolkit.amazonwebservices.com/
+
 App Creation Permissions, Access to Qlik Sense Hub, Data Connection Access, Sheet and Object Creation, Data Load Editor Access
 
 Data Connection Access: Ensure you have permissions to create and manage data connections to your database. This includes the ability to use connectors like ODBC or JDBC.

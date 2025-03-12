@@ -1,0 +1,17 @@
+App Creation Permissions, Access to Qlik Sense Hub, Data Connection Access, Sheet and Object Creation, Data Load Editor Access
+
+Data Connection Access: Ensure you have permissions to create and manage data connections to your database. This includes the ability to use connectors like ODBC or JDBC.
+
+App Creation Permissions: You need the ability to create new apps within Qlik. This includes permissions to load data, create visualizations, and save your work.
+
+Data Load Editor Access: Access to the Data Load Editor is crucial for writing and executing load scripts to fetch and transform your test results data.
+
+Sheet and Object Creation: Permissions to create and modify sheets and objects (charts, tables, etc.) within your apps.
+
+Publishing Rights: If you need to share your dashboards with others, ensure you have the rights to publish apps to streams or spaces where your team can access them.
+
+Security Rules Management: Depending on your role, you might need access to manage security rules to control who can view or edit your dashboards.
+
+Access to Qlik Sense Hub: Ensure you have access to the Qlik Sense Hub, where you can manage your apps and data connections.
+
+Role-Based Access Control: Understand the roles and permissions assigned to you. Common roles include Developer, Analyzer, and Admin, each with different levels of access1.

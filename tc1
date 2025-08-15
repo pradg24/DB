@@ -7,7 +7,7 @@ CREATE OR REPLACE TYPE action_argument_obj AS OBJECT (
 CREATE OR REPLACE TYPE action_argument_table AS TABLE OF action_argument_obj;
 /
 
--- Create Type for Test Steps (renamed to step_obj)
+-- Create Type for Test Steps
 CREATE OR REPLACE TYPE step_obj AS OBJECT (
     action VARCHAR2(100),
     type VARCHAR2(50),
@@ -37,6 +37,7 @@ BEGIN
 END;
 /
 
+-- Procedure to insert test case
 CREATE OR REPLACE PROCEDURE insert_test_case (
     p_suite_name IN VARCHAR2,
     p_description IN CLOB,
@@ -90,7 +91,7 @@ BEGIN
         p_is_parallel,
         SYSDATE,
         SYSDATE,
-        USER -- Use the current database user
+        USER
     ) RETURNING test_case_id INTO v_test_case_id;
 
     -- Insert test steps
@@ -116,15 +117,37 @@ BEGIN
             p_test_steps(i).locator,
             SYSDATE,
             SYSDATE,
-            USER -- Use the current database user
+            USER
         ) RETURNING step_id INTO v_step_id;
 
-        -- Insert action arguments for each test step
-        FOR j IN 1 .. p_test_steps(i).action
+        -- Insert action arguments
+        IF p_test_steps(i).action_arguments IS NOT NULL THEN
+            FOR j IN 1 .. p_test_steps(i).action_arguments.COUNT LOOP
+                INSERT INTO action_arguments (
+                    action_id,
+                    step_id,
+                    argument_name,
+                    argument_value
+                ) VALUES (
+                    v_action_id,
+                    v_step_id,
+                    p_test_steps(i).action_arguments(j).argument_name,
+                    p_test_steps(i).action_arguments(j).argument_value
+                );
+            END LOOP;
+        END IF;
+    END LOOP;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RAISE_APPLICATION_ERROR(-20005, 'Suite name or action not found: ' || p_suite_name);
+    WHEN OTHERS THEN
+        RAISE_APPLICATION_ERROR(-20004, 'Error adding test case, test steps, or action arguments: ' || SQLERRM);
+END;
 /
 
+-- Sample Anonymous Block to Execute the Procedure
 DECLARE
-    v_suite_name VARCHAR2(255) := 'Suite Name'; -- Replace with the appropriate suite name
+    v_suite_name VARCHAR2(255) := 'Suite Name'; -- Replace with actual suite name
     v_description CLOB := 'This is a test case description.';
     v_is_execute VARCHAR2(1) := 'Y';
     v_is_parallel VARCHAR2(1) := 'N';
